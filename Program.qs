@@ -36,7 +36,7 @@ namespace ShorsFactoringAlgorithm {
 
 
     // @EntryPoint()
-    operation Main() : Unit {
+    operation TestQFT() : Unit {
         
         let n = 3;
         using (qubits = Qubit[n]) {
@@ -60,8 +60,8 @@ namespace ShorsFactoringAlgorithm {
         using (qubits = Qubit[2*n]) {
 
             X(qubits[0]); // Set to |1> which we will multiply on
-            X(qubits[5]); // Set control qubit to 1. 
-            X(qubits[4]);
+            X(qubits[5]); // Set control qubit to 1. Will multiply by 7^2
+            X(qubits[4]); // Set control qubit. Will multiply by 7
 
             Message("Pre-Multiply State: ");
             DumpMachine();  // Expect 33 = 2^5 + 2^0
