@@ -20,32 +20,6 @@ namespace ShorsFactoringAlgorithm {
         }
     }
 
-    operation modMultU(x: Qubit[], yLE: LittleEndian, modulus: Int, baseInt: BigInt, bitOffset: Int): Unit {
-        // Computes b^(2^n) mod N Unitary for given x[n]
-
-        // Compute b^(2^n) [Can instead do this with repeated squaring]
-        let bigFactor = ModPowL(
-            baseInt, PowL(IntAsBigInt(2), bitOffset), IntAsBigInt(modulus)
-        );
-
-        mutable (factor, converted) = MaybeBigIntAsInt(bigFactor);
-
-        if (not converted) {
-            fail "Could not convert Integer to Big Integer!";
-        }
-
-        // MultiplyByModularInteger(factor, modulus, yLE);
-        Controlled MultiplyByModularInteger([x[bitOffset]], (factor, modulus, yLE));
-    }
-
-    
-    // operation modExpU(inQubits: Qubit[], ancilla: LittleEndian,  modulus: Int, baseInt: BigInt, nQubits: Int): Unit {
-    //     // computes b^x mod N
-        
-    //     for (bitOffset in 0..nQubits-1) {
-    //         modMultU(inQubits, ancilla, modulus, baseInt, bitOffset);
-    //     }
-    // }
     operation modExpU(inQubits: Qubit[], ancilla: LittleEndian,  modulus: Int, baseInt: Int, nQubits: Int): Unit {
         // computes b^x mod N
         

@@ -1,0 +1,4 @@
+bin/*
+obj/*
+working_notes.md
+*.csproj
