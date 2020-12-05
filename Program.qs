@@ -173,11 +173,11 @@ namespace ShorsFactoringAlgorithm {
             return (0, 0);  // period of 0 will get picked up and retried later
         }
         
-        mutable num = PowI(2, nQubits);
-        mutable denom = y;
+        mutable denom = PowI(2, nQubits);
+        mutable num = y;
         // Compute floating point of fraction and stopping criteria
-        let actual = IntAsDouble(y)/IntAsDouble(num);
-        let stopThresh = 1.0/(2.0*IntAsDouble(num));
+        let actual = IntAsDouble(y)/IntAsDouble(denom);
+        let stopThresh = 1.0/(2.0*IntAsDouble(denom));
 
         // Initialize variables
         mutable contFracRep = new Int[0];
@@ -191,25 +191,34 @@ namespace ShorsFactoringAlgorithm {
         //   It is a perfect representation OR we are very close to actual floating point
         repeat {
             // n/d = 1/(f+ (d-fn)/n) where f = floor(d/n) -> assumes n < d
-            set factor = DividedByI(num, denom);
+            set factor = DividedByI(denom, num);
             set contFracRep += [factor];
-            set holder = denom;
-            set denom = num - denom*factor;
-            set num = holder;
+            set holder = num;
+            set num = denom - num*factor;
+            set denom = holder;
 
             // Calculate the estimated fraction so far
             set (j, period) = continuedFracAsRatio(contFracRep);
 
             if (denom == 0) {  // perfect representation
                 set delta = 0.0;
+                // set contFracRep += [denom];
+                // set (j, period) = continuedFracAsRatio(contFracRep);
             } else {
                 // See how far the current floating point fraction is from the actual
                 set delta = AbsD(IntAsDouble(j)/IntAsDouble(period) - actual );
+                // Message($"Checking if {j}/{period} is close enough to {actual}");
             }
 
         } until ( delta < stopThresh);
 
+        if ( delta != 0.0 ) {
+            set contFracRep += [DividedByI(denom, num)];
+            set (j, period) = continuedFracAsRatio(contFracRep);
+        }
+
         Message($"Continued Frac is: {contFracRep}");
+        // Message($"frac is {num}/{denom}");
 
         return (period, j);
     }
@@ -307,7 +316,7 @@ namespace ShorsFactoringAlgorithm {
         }
     }
 
-    @EntryPoint()
+    // @EntryPoint()
     operation TestContFrac() : Unit {
         // mutable contFrac = [1,3]; // 1/(1+ 1/3) = 3/4
         mutable contFrac = [4,12,4]; // 1/(4+ 1/(12+ 1/4))) = 49/200
@@ -317,8 +326,8 @@ namespace ShorsFactoringAlgorithm {
         Message($"Frac is: {num} / {denom}");
 
         // let (period, j) = estimatePeriodWithContinuedFrac(3, 2, 15); // = 3/4 expect 4, 3
-        // let (period, j) = estimatePeriodWithContinuedFrac(48, 6, 15); // = 48/64 expect 4,3
-        let (period, j) = estimatePeriodWithContinuedFrac(62, 7, 21); 
+        let (period, j) = estimatePeriodWithContinuedFrac(48, 6, 15); // = 48/64 expect 4,3
+        // let (period, j) = estimatePeriodWithContinuedFrac(62, 7, 21); 
         Message($"Period, index is: {period} , {j}");
     }
 
@@ -338,11 +347,11 @@ namespace ShorsFactoringAlgorithm {
         Message($"Factors are: {factor1} and {factor2}");
     }
 
-    // @EntryPoint()
+    @EntryPoint()
     operation TestShors21() : Unit {
         Message("Attempting to Factor 21!");
         // Test that 21 = 7x3 using 7 qubits by computing (5^x mod 21)
-        let nQubits = 7;  // Using less qubits than suggested, more likely to retry, but faster attemps
+        let nQubits = 8;  // Using less qubits than suggested, more likely to retry, but faster attemps
         let baseInt = 5;
         let (factor1, factor2) = ShorsFactoringAlgorithm(21, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
