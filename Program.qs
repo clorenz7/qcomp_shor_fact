@@ -9,7 +9,9 @@ namespace ShorsFactoringAlgorithm {
     open Microsoft.Quantum.Convert;
 
     operation QFT(inQubits: Qubit[], n: Int) : Unit  {
-        // Computes the quantum fourier transform
+        // In-place computation of the quantum fourier transform 
+        //  Transform taken via sequential controlled of Rd gates       
+        // Note that for littleEndian input, the result will be big endian
         for (dIdx in 1..n) {
             let qIdx = n-dIdx;
             H(inQubits[qIdx]);
@@ -21,7 +23,7 @@ namespace ShorsFactoringAlgorithm {
 
     operation modExpU(inQubits: Qubit[], ancilla: LittleEndian,  modulus: Int, baseInt: Int, nQubits: Int): Unit {
         // computes b^x mod N
-        // Via bitwise modular exponentiation
+        // via bitwise modular exponentiation
         
         mutable factor = baseInt; // e.g. b^(2^0) = b
 
@@ -36,7 +38,8 @@ namespace ShorsFactoringAlgorithm {
         }
     }
 
-    operation periodFinding(inQubits: Qubit[], ancilla: LittleEndian,  modulus: Int, baseInt: Int, nQubits: Int): Int {
+    operation measureModularFrequency(inQubits: Qubit[], ancilla: LittleEndian,  modulus: Int, baseInt: Int, nQubits: Int): Int {
+        // Performs modular exponentiation, takes the QFT and measures the qubits
 
         // Perform the modular exponentiation
         modExpU(inQubits, ancilla,  modulus, baseInt, nQubits);
@@ -46,8 +49,7 @@ namespace ShorsFactoringAlgorithm {
         QFT(inQubits, nQubits);
         Message("QFT Complete!");
 
-        // Measure
-        // But need to account for the swap that the QFT Does
+        // Measure, but need to account for the swap that the QFT Does
         let measInt = MeasureInteger(
             BigEndianAsLittleEndian(BigEndian(inQubits))  
         );  
@@ -56,41 +58,53 @@ namespace ShorsFactoringAlgorithm {
     }   
 
     operation ShorsFactoringAlgorithm(N: Int, nQubits: Int, baseInt: Int): (Int, Int) {
-
+        // Factors N based on Shor's quantum factoring algorithm
+        //  nQubits should be such that 2^nQubits approx N^2. 
+        //  baseInt: a randomly selected number coprime to N
         let modulus = N;
         mutable measInt = 0;
+        mutable foundPeriod = false;
+        mutable period = 0;
+        mutable j= 0;
+        mutable count = 1;
 
-        using (qubits = Qubit[2*nQubits]) {
+        repeat {
+            Message($"Running Period Finding Attempt #{count}");
+            using (qubits = Qubit[2*nQubits]) {
 
-            let chunks = Chunks(nQubits, qubits);
-            // Set the ancilla qubit to $|1> for multiplication 
-            X(chunks[1][0]);
-            let x = chunks[0];
-            let LX = Length(x);
-            // Prepare maximum superposition
-            ApplyToEach(H, x);
-            let y = LittleEndian(chunks[1]); 
-            Message("State is prepared!");
+                let chunks = Chunks(nQubits, qubits);
+                // Set the ancilla qubit to $|1> for multiplication 
+                X(chunks[1][0]);
+                let x = chunks[0];
+                // Prepare maximum superposition
+                ApplyToEach(H, x);
+                let y = LittleEndian(chunks[1]); 
+                Message("State is prepared!");
 
-            set measInt = periodFinding(x, y,  modulus, baseInt, nQubits);
-            Message($"Period Measured to be: |{measInt}>");
+                set measInt = measureModularFrequency(x, y,  modulus, baseInt, nQubits);
+                Message($"Measured Frequency: |{measInt}>");
 
-            ApplyToEach(Reset, qubits);  // Uncompute
-        }
+                ApplyToEach(Reset, qubits);  // Uncompute
+            }
 
-        // Check if we need to try again
+            set (period, j) = estimatePeriodWithContinuedFrac(measInt, nQubits, N);
+            Message($"Period Measured to be: {period}, index: {j}");
 
-        mutable (period, j) = estimatePeriodWithContinuedFrac(measInt, nQubits);
-        Message($"Period Measured to be: {period}, index: {j}");
+            // check that period is not odd, 0 and that modular exp is consistent
+            let checkVal = ExpModI(baseInt, period, N);
+            set foundPeriod = (
+                ModI(period, 2) == 0 and
+                period != 0 and 
+                checkVal == 1
+            );
+            set count += 1;
 
-        // check that period is not odd
-        if (ModI(period, 2) == 1 or period == 0 ) {
-            Message("NEED TO Try AGAIN");
-        }
+        } until (foundPeriod);
+        
 
         let baseToHalfPeriod = PowI(baseInt, DividedByI(period,2));
 
-        let factor1 = gcd(N,  baseToHalfPeriod-1); // a^(r/2)-1
+        let factor1 = gcd(N, baseToHalfPeriod-1); // a^(r/2)-1
         let factor2 = gcd(N, baseToHalfPeriod+1);
 
         return (factor1, factor2);
@@ -98,9 +112,10 @@ namespace ShorsFactoringAlgorithm {
     }
 
     operation gcd(a: Int, b: Int): Int {
-
+        // Computes the greated common divisor of two numbers
         Message($"Computing GCD({a}, {b})");
 
+        // Initialize and find the larger number
         mutable factor = 0;
         mutable holder = 0;
         mutable small = b;
@@ -125,12 +140,16 @@ namespace ShorsFactoringAlgorithm {
     }
 
     operation continuedFracAsRatio(contFrac: Int[]): (Int, Int) {
+        // Converts a continued fraction represented as [a,b,c,d]
+        // = 1/(a+1/(b+1/(c+1/d)))) as a simple fraction
         mutable num = 1;
         mutable nFrac = Length(contFrac);
         mutable denom = contFrac[nFrac-1];
         mutable holder = 0;
 
         for ( fromEnd in 2.. nFrac) {
+            // Put to a common denominator and invert
+            // e.g. 1/(a + n/d) = d/(a*d+n)
             set holder = denom;
             set denom = num + denom*contFrac[nFrac-fromEnd];
             set num = holder;
@@ -140,17 +159,24 @@ namespace ShorsFactoringAlgorithm {
     }
 
 
-    operation estimatePeriodWithContinuedFrac(y: Int, nQubits: Int): (Int, Int) {
+    operation estimatePeriodWithContinuedFrac(y: Int, nQubits: Int, N: Int): (Int, Int) {
+        
+        // Make sure to not divide by zero! 
+        if ( y == 0 ) {
+            return (0, 0);  // period of 0 will get picked up and retried later
+        }
+        
         mutable contFracRep = new Int[0];
         mutable num = PowI(2, nQubits);
         mutable denom = y;
         let actual = IntAsDouble(y)/IntAsDouble(num);
+        let stopThresh = 1.0/(2.0*IntAsDouble(num));
         mutable holder = 0;
         mutable factor = 0;
         mutable delta = 1.0;
         mutable j = 0;
         mutable period = 0;
-        let stopThresh = 1.0/(2.0*IntAsDouble(num));
+        
 
         repeat {
             set factor = DividedByI(num, denom);
@@ -167,7 +193,7 @@ namespace ShorsFactoringAlgorithm {
                 set delta = AbsD(IntAsDouble(j)/IntAsDouble(period) - actual );
             }
 
-        } until ( delta < stopThresh );
+        } until ( delta < stopThresh and period < N);
 
         return (period, j);
     }
@@ -259,7 +285,7 @@ namespace ShorsFactoringAlgorithm {
             let y = LittleEndian(chunks[1]); 
             Message("State is prepared!");
 
-            let period = periodFinding(x, y,  modulus, baseInt, n);
+            let period = measureModularFrequency(x, y,  modulus, baseInt, n);
 
             Message($"Period Measured to be: |{period}>");
             ApplyToEach(Reset, qubits);
@@ -269,20 +295,22 @@ namespace ShorsFactoringAlgorithm {
     // @EntryPoint()
     operation TestContFrac() : Unit {
         // mutable contFrac = [1,3]; // 1/(1+ 1/3) = 3/4
-        mutable contFrac = [4,12,4]; // 1/(1+ 1/3) = 49/200
+        mutable contFrac = [4,12,4]; // 1/(4+ 1/(12+ 1/4))) = 49/200
         mutable num = 0; 
         mutable denom=0;
         set (num, denom) = continuedFracAsRatio(contFrac);
         Message($"Frac is: {num} / {denom}");
 
-        // let (period, j) = estimatePeriodWithContinuedFrac(3, 2); // = 3/4 expect 4, 3
-        let (period, j) = estimatePeriodWithContinuedFrac(48, 6); // = 48/64 expect 4,3
+        // let (period, j) = estimatePeriodWithContinuedFrac(3, 2, 15); // = 3/4 expect 4, 3
+        let (period, j) = estimatePeriodWithContinuedFrac(48, 6, 15); // = 48/64 expect 4,3
         Message($"Period, index is: {period} , {j}");
     }
 
     @EntryPoint()
     operation TestShors() : Unit {
-        let (factor1, factor2) = ShorsFactoringAlgorithm(15, 6, 7);
+        let nQubits = 6;
+        let baseInt = 7;
+        let (factor1, factor2) = ShorsFactoringAlgorithm(15, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
     }
 }
