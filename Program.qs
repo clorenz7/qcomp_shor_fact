@@ -14,7 +14,6 @@ namespace ShorsFactoringAlgorithm {
             let qIdx = n-dIdx;
             H(inQubits[qIdx]);
             for (d in 1..(qIdx)) {
-                // Message("d={d}, qIdx={qIdx}" );
                 Controlled R1Frac([inQubits[qIdx-d]], (d, 1, inQubits[qIdx]));
             }
         }
@@ -34,7 +33,6 @@ namespace ShorsFactoringAlgorithm {
             // Only apply the unitary multiplication if the control qubit is |1>
             Controlled MultiplyByModularInteger([inQubits[bitOffset]], (factor, modulus, ancilla));
             Message($"Finished ModExp of bitOffset {bitOffset}");
-
         }
     }
 
@@ -51,20 +49,62 @@ namespace ShorsFactoringAlgorithm {
         // Measure
         // But need to account for the swap that the QFT Does
         let measInt = MeasureInteger(
-            BigEndianAsLittleEndian(BigEndian(inQubits))  // Was LittleEndian(inQubits)
+            BigEndianAsLittleEndian(BigEndian(inQubits))  
         );  
 
-        // Return the result. 
         return measInt;
     }   
 
+    operation ShorsFactoringAlgorithm(N: Int, nQubits: Int, baseInt: Int): (Int, Int) {
+
+        let modulus = N;
+        mutable measInt = 0;
+
+        using (qubits = Qubit[2*nQubits]) {
+
+            let chunks = Chunks(nQubits, qubits);
+            // Set the ancilla qubit to $|1> for multiplication 
+            X(chunks[1][0]);
+            let x = chunks[0];
+            let LX = Length(x);
+            // Prepare maximum superposition
+            ApplyToEach(H, x);
+            let y = LittleEndian(chunks[1]); 
+            Message("State is prepared!");
+
+            set measInt = periodFinding(x, y,  modulus, baseInt, nQubits);
+            Message($"Period Measured to be: |{measInt}>");
+
+            ApplyToEach(Reset, qubits);  // Uncompute
         }
+
+        // Check if we need to try again
+
+        mutable (period, j) = estimatePeriodWithContinuedFrac(measInt, nQubits);
+        Message($"Period Measured to be: {period}, index: {j}");
+
+        // check that period is not odd
+        if (ModI(period, 2) == 1 or period == 0 ) {
+            Message("NEED TO Try AGAIN");
+        }
+
+        let baseToHalfPeriod = PowI(baseInt, DividedByI(period,2));
+
+        let factor1 = gcd(N,  baseToHalfPeriod-1); // a^(r/2)-1
+        let factor2 = gcd(N, baseToHalfPeriod+1);
+
+        return (factor1, factor2);
+
+    }
+
     operation gcd(a: Int, b: Int): Int {
+
+        Message($"Computing GCD({a}, {b})");
 
         mutable factor = 0;
         mutable holder = 0;
-        mutable small = a;
-        mutable large = b;
+        mutable small = b;
+        mutable large = a;
 
         if (large < small) {
             set holder = small;
@@ -79,9 +119,9 @@ namespace ShorsFactoringAlgorithm {
             set holder = small;
             set small = large - factor*small;
             set large = holder;
-        } until (large == small);
+        } until (large == small or small == 0);
 
-        return small;
+        return large;
     }
 
     operation continuedFracAsRatio(contFrac: Int[]): (Int, Int) {
@@ -238,5 +278,11 @@ namespace ShorsFactoringAlgorithm {
         // let (period, j) = estimatePeriodWithContinuedFrac(3, 2); // = 3/4 expect 4, 3
         let (period, j) = estimatePeriodWithContinuedFrac(48, 6); // = 48/64 expect 4,3
         Message($"Period, index is: {period} , {j}");
+    }
+
+    @EntryPoint()
+    operation TestShors() : Unit {
+        let (factor1, factor2) = ShorsFactoringAlgorithm(15, 6, 7);
+        Message($"Factors are: {factor1} and {factor2}");
     }
 }
