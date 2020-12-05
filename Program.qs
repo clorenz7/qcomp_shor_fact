@@ -95,6 +95,7 @@ namespace ShorsFactoringAlgorithm {
             set foundPeriod = (
                 ModI(period, 2) == 0 and
                 period != 0 and 
+                period < N and
                 checkVal == 1
             );
             set count += 1;
@@ -189,7 +190,7 @@ namespace ShorsFactoringAlgorithm {
         // Iteratively create a continued fraction representation until:
         //   It is a perfect representation OR we are very close to actual floating point
         repeat {
-            // n/d = 1/(f+ (d-n)/n) where f = floor(d/n) -> assumes n < d
+            // n/d = 1/(f+ (d-fn)/n) where f = floor(d/n) -> assumes n < d
             set factor = DividedByI(num, denom);
             set contFracRep += [factor];
             set holder = denom;
@@ -206,7 +207,9 @@ namespace ShorsFactoringAlgorithm {
                 set delta = AbsD(IntAsDouble(j)/IntAsDouble(period) - actual );
             }
 
-        } until ( delta < stopThresh and period < N);
+        } until ( delta < stopThresh);
+
+        Message($"Continued Frac is: {contFracRep}");
 
         return (period, j);
     }
@@ -304,7 +307,7 @@ namespace ShorsFactoringAlgorithm {
         }
     }
 
-    // @EntryPoint()
+    @EntryPoint()
     operation TestContFrac() : Unit {
         // mutable contFrac = [1,3]; // 1/(1+ 1/3) = 3/4
         mutable contFrac = [4,12,4]; // 1/(4+ 1/(12+ 1/4))) = 49/200
@@ -314,7 +317,8 @@ namespace ShorsFactoringAlgorithm {
         Message($"Frac is: {num} / {denom}");
 
         // let (period, j) = estimatePeriodWithContinuedFrac(3, 2, 15); // = 3/4 expect 4, 3
-        let (period, j) = estimatePeriodWithContinuedFrac(48, 6, 15); // = 48/64 expect 4,3
+        // let (period, j) = estimatePeriodWithContinuedFrac(48, 6, 15); // = 48/64 expect 4,3
+        let (period, j) = estimatePeriodWithContinuedFrac(62, 7, 21); 
         Message($"Period, index is: {period} , {j}");
     }
 
@@ -325,7 +329,7 @@ namespace ShorsFactoringAlgorithm {
         Message($"GCD is:{val}");
     }
 
-    @EntryPoint()
+    // @EntryPoint()
     operation TestShors15() : Unit {
         // Test that 15 = 3x5 using 6 qubits by computing (7^x mod 15)
         let nQubits = 6;
@@ -336,6 +340,7 @@ namespace ShorsFactoringAlgorithm {
 
     // @EntryPoint()
     operation TestShors21() : Unit {
+        Message("Attempting to Factor 21!");
         // Test that 21 = 7x3 using 7 qubits by computing (5^x mod 21)
         let nQubits = 7;  // Using less qubits than suggested, more likely to retry, but faster attemps
         let baseInt = 5;
