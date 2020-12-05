@@ -59,6 +59,77 @@ namespace ShorsFactoringAlgorithm {
     }   
 
         }
+    operation gcd(a: Int, b: Int): Int {
+
+        mutable factor = 0;
+        mutable holder = 0;
+        mutable small = a;
+        mutable large = b;
+
+        if (large < small) {
+            set holder = small;
+            set small = large;
+            set large = holder;
+        }
+
+        // The basic strategy is to repeatedly subtract the smaller number from
+        // the larger since cx-cy = c(x-y), eg GCD remains after subtraction. 
+        repeat  {
+            set factor = DividedByI(large, small); // Do division to speed things up
+            set holder = small;
+            set small = large - factor*small;
+            set large = holder;
+        } until (large == small);
+
+        return small;
+    }
+
+    operation continuedFracAsRatio(contFrac: Int[]): (Int, Int) {
+        mutable num = 1;
+        mutable nFrac = Length(contFrac);
+        mutable denom = contFrac[nFrac-1];
+        mutable holder = 0;
+
+        for ( fromEnd in 2.. nFrac) {
+            set holder = denom;
+            set denom = num + denom*contFrac[nFrac-fromEnd];
+            set num = holder;
+        } 
+
+        return (num, denom);
+    }
+
+
+    operation estimatePeriodWithContinuedFrac(y: Int, nQubits: Int): (Int, Int) {
+        mutable contFracRep = new Int[0];
+        mutable num = PowI(2, nQubits);
+        mutable denom = y;
+        let actual = IntAsDouble(y)/IntAsDouble(num);
+        mutable holder = 0;
+        mutable factor = 0;
+        mutable delta = 1.0;
+        mutable j = 0;
+        mutable period = 0;
+        let stopThresh = 1.0/(2.0*IntAsDouble(num));
+
+        repeat {
+            set factor = DividedByI(num, denom);
+            set contFracRep += [factor];
+            set holder = denom;
+            set denom = num - denom*factor;
+            set num = holder;
+
+            set (j, period) = continuedFracAsRatio(contFracRep);
+
+            if (denom == 0) {
+                set delta = 0.0;
+            } else {
+                set delta = AbsD(IntAsDouble(j)/IntAsDouble(period) - actual );
+            }
+
+        } until ( delta < stopThresh );
+
+        return (period, j);
     }
 
 
@@ -155,4 +226,17 @@ namespace ShorsFactoringAlgorithm {
         }
     }
 
+    // @EntryPoint()
+    operation TestContFrac() : Unit {
+        // mutable contFrac = [1,3]; // 1/(1+ 1/3) = 3/4
+        mutable contFrac = [4,12,4]; // 1/(1+ 1/3) = 49/200
+        mutable num = 0; 
+        mutable denom=0;
+        set (num, denom) = continuedFracAsRatio(contFrac);
+        Message($"Frac is: {num} / {denom}");
+
+        // let (period, j) = estimatePeriodWithContinuedFrac(3, 2); // = 3/4 expect 4, 3
+        let (period, j) = estimatePeriodWithContinuedFrac(48, 6); // = 48/64 expect 4,3
+        Message($"Period, index is: {period} , {j}");
+    }
 }
