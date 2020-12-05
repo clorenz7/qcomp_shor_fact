@@ -65,7 +65,7 @@ namespace ShorsFactoringAlgorithm {
         mutable measInt = 0;
         mutable foundPeriod = false;
         mutable period = 0;
-        mutable j= 0;
+        mutable j = 0;
         mutable count = 1;
 
         repeat {
@@ -98,9 +98,11 @@ namespace ShorsFactoringAlgorithm {
                 checkVal == 1
             );
             set count += 1;
+            if (not foundPeriod) {
+                Message("Measured Period is inconsistent, retrying ...");
+            }
 
-        } until (foundPeriod);
-        
+        } until (foundPeriod); 
 
         let baseToHalfPeriod = PowI(baseInt, DividedByI(period,2));
 
@@ -112,7 +114,7 @@ namespace ShorsFactoringAlgorithm {
     }
 
     operation gcd(a: Int, b: Int): Int {
-        // Computes the greated common divisor of two numbers
+        // Computes the greatest common divisor of two numbers
         Message($"Computing GCD({a}, {b})");
 
         // Initialize and find the larger number
@@ -160,36 +162,47 @@ namespace ShorsFactoringAlgorithm {
 
 
     operation estimatePeriodWithContinuedFrac(y: Int, nQubits: Int, N: Int): (Int, Int) {
-        
+        // Uses the measured quantum state to estimate the period
+        // by estimating y/2^nQubits as j/period using continued fractions
+        //   e.g. y = x_0 + j*period
+        // Returns: (period, j)
+
         // Make sure to not divide by zero! 
         if ( y == 0 ) {
             return (0, 0);  // period of 0 will get picked up and retried later
         }
         
-        mutable contFracRep = new Int[0];
         mutable num = PowI(2, nQubits);
         mutable denom = y;
+        // Compute floating point of fraction and stopping criteria
         let actual = IntAsDouble(y)/IntAsDouble(num);
         let stopThresh = 1.0/(2.0*IntAsDouble(num));
+
+        // Initialize variables
+        mutable contFracRep = new Int[0];
         mutable holder = 0;
         mutable factor = 0;
         mutable delta = 1.0;
         mutable j = 0;
         mutable period = 0;
         
-
+        // Iteratively create a continued fraction representation until:
+        //   It is a perfect representation OR we are very close to actual floating point
         repeat {
+            // n/d = 1/(f+ (d-n)/n) where f = floor(d/n) -> assumes n < d
             set factor = DividedByI(num, denom);
             set contFracRep += [factor];
             set holder = denom;
             set denom = num - denom*factor;
             set num = holder;
 
+            // Calculate the estimated fraction so far
             set (j, period) = continuedFracAsRatio(contFracRep);
 
-            if (denom == 0) {
+            if (denom == 0) {  // perfect representation
                 set delta = 0.0;
             } else {
+                // See how far the current floating point fraction is from the actual
                 set delta = AbsD(IntAsDouble(j)/IntAsDouble(period) - actual );
             }
 
@@ -200,6 +213,7 @@ namespace ShorsFactoringAlgorithm {
 
 
     // --------- UNIT TESTS ---------------------
+    //  (Verify that each function works correctly)
 
     // @EntryPoint()
     operation TestQFT() : Unit {
@@ -250,10 +264,8 @@ namespace ShorsFactoringAlgorithm {
             let x = Subarray([4,5,6,7], qubits);
 
             let modulus = 15;
-            // let baseInt = IntAsBigInt(7);
             let baseInt = 7;
 
-            // modMultU(x, yLE, modulus, baseInt, 1);
             modExpU(x, yLE, modulus, baseInt, n);
             X(qubits[5]);  // # Flip control qubits back. 
             X(qubits[4]);
@@ -306,11 +318,29 @@ namespace ShorsFactoringAlgorithm {
         Message($"Period, index is: {period} , {j}");
     }
 
+    // @EntryPoint()
+    operation TestGCD(): Unit {
+        mutable val=1;
+        set val = gcd(808, 4343); // Should be 101
+        Message($"GCD is:{val}");
+    }
+
     @EntryPoint()
-    operation TestShors() : Unit {
+    operation TestShors15() : Unit {
+        // Test that 15 = 3x5 using 6 qubits by computing (7^x mod 15)
         let nQubits = 6;
         let baseInt = 7;
         let (factor1, factor2) = ShorsFactoringAlgorithm(15, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
     }
+
+    // @EntryPoint()
+    operation TestShors21() : Unit {
+        // Test that 21 = 7x3 using 7 qubits by computing (5^x mod 21)
+        let nQubits = 7;  // Using less qubits than suggested, more likely to retry, but faster attemps
+        let baseInt = 5;
+        let (factor1, factor2) = ShorsFactoringAlgorithm(21, nQubits, baseInt);
+        Message($"Factors are: {factor1} and {factor2}");
+    }
+
 }
