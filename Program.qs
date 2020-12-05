@@ -24,12 +24,10 @@ namespace ShorsFactoringAlgorithm {
         // computes b^x mod N
         // Via bitwise modular exponentiation
         
-        mutable factor = baseInt; // b^(2^0) = b
         mutable factor = baseInt; // e.g. b^(2^0) = b
 
         for (bitOffset in 0..nQubits-1) {
             if (bitOffset > 0) {
-                set factor = ModI(factor*factor, modulus); // (b^x)^2 = b^(2x)
                 // Square the factor as we go up the qubits
                 set factor = ModI(factor*factor, modulus); // e.g. (b^x)^2 = b^(2x)
             }
@@ -72,7 +70,6 @@ namespace ShorsFactoringAlgorithm {
         let n = 3;
         using (qubits = Qubit[n]) {
 
-            // H(qubits[1]);
             H(qubits[1]);
 
             Message("Pre-QFT State: ");
@@ -99,7 +96,6 @@ namespace ShorsFactoringAlgorithm {
         }
     }
 
-    @EntryPoint()
     // @EntryPoint()
     operation TestModMult() : Unit {
         
@@ -124,8 +120,6 @@ namespace ShorsFactoringAlgorithm {
             modExpU(x, yLE, modulus, baseInt, n);
             X(qubits[5]);  // # Flip control qubits back. 
             X(qubits[4]);
-            Message("Post-Multiply State: ");
-            DumpMachine();  // Expect 4 since 7^2 mod 15 = 4, or 13 since 7^3 mod 15 = 13
 
             let result = MeasureInteger(yLE);
             Message($"Post-Multiply and Measure State: |{result}>");
