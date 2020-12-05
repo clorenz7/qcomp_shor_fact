@@ -1,9 +1,9 @@
 # Introduction
 Q# Implementation of Shor's Quantum Factoring Algorithm for my PHYS 575 Final Project
 
-Shor's algorithm is based on finding the period of the unitary function b^x mod N using the Quantum Fourier Transform. Once the a frequency is found, continued fraction expansion is used to find the period, and the Euclid's greatest common denomintor is used to find the actual factors. 
+Shor's algorithm is based on finding the period of the unitary function b^x mod N using the Quantum Fourier Transform. Once the a frequency is found, continued fraction expansion is used to find the period, and the Euclid's greatest common denominator is used to find the actual factors. 
 
-This code implements the QFT using controlled Rd gates, and implements the unitary function based on the binary decomposition of x. It uses a library function in the Microsoft Quantum Software Development Kit to perform the modular multiplcations. The continued fraction and GCD code is custom. 
+This code implements the QFT using controlled Rd gates, and implements the unitary function based on the binary decomposition of x. It uses a library function in the Microsoft Quantum Software Development Kit to perform the modular multiplications. The continued fraction and GCD code is custom. 
 
 There are quick printed out validation tests of the most functions. They can be run by changing the `@EntryPoint()` of the code. 
 
@@ -22,7 +22,7 @@ Updated instructions might be found [here](https://docs.microsoft.com/en-us/quan
 
 Factoring 15:
 ```
-PS C:\Users\DasCorCor\Dropbox\PHYS 575\code\ShorsFactoringAlgorithm> dotnet run
+PS C:\code\qcomp_shor_fact> dotnet run
 Running Period Finding Attempt #1
 State is prepared!
 Finished ModExp of bitOffset 0
@@ -31,10 +31,13 @@ Finished ModExp of bitOffset 2
 Finished ModExp of bitOffset 3
 Finished ModExp of bitOffset 4
 Finished ModExp of bitOffset 5
+Finished ModExp of bitOffset 6
+Finished ModExp of bitOffset 7
 Modular Exponentiation Complete!
 QFT Complete!
-Measured Frequency: |0>
-Period Measured to be: 0, index: 0
+Measured Frequency: |128>
+Continued Frac is: [2]
+Period Measured to be: 2, index: 1
 Measured Period is inconsistent, retrying ...
 Running Period Finding Attempt #2
 State is prepared!
@@ -44,9 +47,12 @@ Finished ModExp of bitOffset 2
 Finished ModExp of bitOffset 3
 Finished ModExp of bitOffset 4
 Finished ModExp of bitOffset 5
+Finished ModExp of bitOffset 6
+Finished ModExp of bitOffset 7
 Modular Exponentiation Complete!
 QFT Complete!
-Measured Frequency: |16>
+Measured Frequency: |64>
+Continued Frac is: [4]
 Period Measured to be: 4, index: 1
 Computing GCD(15, 48)
 Computing GCD(15, 50)
