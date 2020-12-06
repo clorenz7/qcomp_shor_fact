@@ -371,13 +371,23 @@ namespace ShorsFactoringAlgorithm {
         Message($"Factors are: {factor1} and {factor2}");
     }
 
-    @EntryPoint()
+    // @EntryPoint()
     operation TestShors33() : Unit {
         Message("Attempting to Factor 33!");
         // Test that 33 = 11x3 using 6 qubits by computing (5^x mod 21)
         let nQubits = 6; // 33 < 2^6 = 64
         let baseInt = 5;  // should be chosen randomly, but to save cpu time....
         let (factor1, factor2) = ShorsFactoringAlgorithm(33, nQubits, baseInt);
+        Message($"Factors are: {factor1} and {factor2}");
+    }
+
+    @EntryPoint()
+    operation TestShors35() : Unit {
+        Message("Attempting to Factor 35!");
+        // Test that 35 = 7x5 using 6 qubits by computing (5^x mod 21)
+        let nQubits = 6; // 33 < 2^6 = 64
+        let baseInt = 13;  // should be chosen randomly, but to save cpu time....
+        let (factor1, factor2) = ShorsFactoringAlgorithm(35, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
     }
 }

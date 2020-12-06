@@ -82,3 +82,55 @@ Computing GCD(21, 12)
 Computing GCD(21, 14)
 Factors are: 3 and 7
 ``` 
+
+Factoring 33:
+```
+...
+Running Period Finding Attempt #3
+State is prepared!
+Finished ModExp of bitOffset 0
+Finished ModExp of bitOffset 1
+Finished ModExp of bitOffset 2
+Finished ModExp of bitOffset 3
+Finished ModExp of bitOffset 4
+Finished ModExp of bitOffset 5
+Finished ModExp of bitOffset 6
+Finished ModExp of bitOffset 7
+Finished ModExp of bitOffset 8
+Finished ModExp of bitOffset 9
+Finished ModExp of bitOffset 10
+Modular Exponentiation Complete!
+QFT Complete!
+Measured Frequency: |1843>
+Continued Frac is: [1,8,1]
+Initial Period Measured to be: 10, index: 9
+Computing GCD(33, 3124)
+Computing GCD(33, 3126)
+Factors are: 11 and 3
+```
+
+Factoring 35:
+```
+...
+Running Period Finding Attempt #3
+State is prepared!
+Finished ModExp of bitOffset 0
+Finished ModExp of bitOffset 1
+Finished ModExp of bitOffset 2
+Finished ModExp of bitOffset 3
+Finished ModExp of bitOffset 4
+Finished ModExp of bitOffset 5
+Finished ModExp of bitOffset 6
+Finished ModExp of bitOffset 7
+Finished ModExp of bitOffset 8
+Finished ModExp of bitOffset 9
+Finished ModExp of bitOffset 10
+Modular Exponentiation Complete!
+QFT Complete!
+Measured Frequency: |1536>
+Continued Frac is: [1,3]
+Initial Period Measured to be: 4, index: 3
+Computing GCD(35, 168)
+Computing GCD(35, 170)
+Factors are: 7 and 5
+```
