@@ -58,18 +58,6 @@ namespace ShorsFactoringAlgorithm {
         return measInt;
     }   
 
-    function validatePeriod(period: Int, baseInt: Int, N: Int): Int {
-        mutable checkVal = 1;
-        mutable newPeriod = period;
-        while ( checkVal == 1 and ModI(newPeriod, 2) != 0 and period < N and period != 0 ) {
-            set newPeriod += period;
-            set checkVal = ExpModI(baseInt, newPeriod, N);
-            Message($"New period {newPeriod} check val is {checkVal}");
-        }
-
-        return newPeriod;
-    }
-
     operation ShorsFactoringAlgorithm(N: Int, nQubits: Int, baseInt: Int): (Int, Int) {
         // Factors N based on Shor's quantum factoring algorithm
         //  nQubits should be such that 2^nQubits approx N^2. 
@@ -81,11 +69,17 @@ namespace ShorsFactoringAlgorithm {
         mutable j = 0;
         mutable count = 1;
 
+        // Use the minimal amount of qubits as possible
+        mutable trim = 0;
+        if ( 2*N*N < PowI(2, 2*nQubits) ) {
+            set trim = 1;
+        }
+
         repeat {
             Message($"Running Period Finding Attempt #{count}");
-            using (qubits = Qubit[3*nQubits-1]) {
+            using (qubits = Qubit[3*nQubits-trim]) {
 
-                let chunks = Chunks(2*nQubits-1, qubits);
+                let chunks = Chunks(2*nQubits-trim, qubits);
                 // Set the ancilla qubit to $|1> for multiplication 
                 X(chunks[1][0]);
                 let x = chunks[0];
@@ -94,31 +88,17 @@ namespace ShorsFactoringAlgorithm {
                 let y = LittleEndian(chunks[1]); 
                 Message("State is prepared!");
 
-                set measInt = measureModularFrequency(x, y,  modulus, baseInt, 2*nQubits-1);
+                set measInt = measureModularFrequency(x, y,  modulus, baseInt, 2*nQubits-trim);
                 Message($"Measured Frequency: |{measInt}>");
 
                 ApplyToEach(Reset, qubits);  // Uncompute
             }
 
-            set (period, j) = estimatePeriodWithContinuedFrac(measInt, 2*nQubits-1, N);
+            set (period, j) = estimatePeriodWithContinuedFrac(measInt, 2*nQubits-trim, N);
             Message($"Initial Period Measured to be: {period}, index: {j}");
 
             // check that period is not odd, 0 and that modular exp is consistent
             mutable checkVal = ExpModI(baseInt, period, N);
-
-            // We can try to increase the period until we exceed the number we are trying to factor. 
-            // e.g. it is possible we selected the 
-            // repeat {
-            //     set period += period;
-            //     set j += j;
-            //     set checkVal = ExpModI(baseInt, period, N);
-            //     Message("HELLLOOOO");
-            // } until ((checkVal == 1 and ModI(period, 2) == 0) or period > N or period == 0 );
-
-            // set period = validatePeriod(period, baseInt, N);
-            // set checkVal = ExpModI(baseInt, period, N);
-
-            // Message($"Updated Period Measured to be: {period}, index: {j}");
 
             set foundPeriod = (
                 ModI(period, 2) == 0 and
@@ -126,6 +106,7 @@ namespace ShorsFactoringAlgorithm {
                 period < N and
                 checkVal == 1
             );
+            
             set count += 1;
             if (not foundPeriod) {
                 Message("Measured Period is inconsistent, retrying ...");
@@ -374,20 +355,29 @@ namespace ShorsFactoringAlgorithm {
     // @EntryPoint()
     operation TestShors15() : Unit {
         // Test that 15 = 3x5 using 6 qubits by computing (7^x mod 15)
-        let nQubits = 4;
-        let baseInt = 7;
+        let nQubits = 4; // 15 < 2^4
+        let baseInt = 7;  // should be chosen randomly, but to save cpu time....
         let (factor1, factor2) = ShorsFactoringAlgorithm(15, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
     }
 
-    @EntryPoint()
+    // @EntryPoint()
     operation TestShors21() : Unit {
         Message("Attempting to Factor 21!");
-        // Test that 21 = 7x3 using 7 qubits by computing (5^x mod 21)
-        let nQubits = 5;  // Using less qubits than suggested, more likely to retry, but faster attemps
-        let baseInt = 13;
+        // Test that 21 = 7x3 using 5 qubits by computing (13^x mod 21)
+        let nQubits = 5;  // 21 < 2^5
+        let baseInt = 13;  // should be chosen randomly, but to save cpu time....
         let (factor1, factor2) = ShorsFactoringAlgorithm(21, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
     }
 
+    @EntryPoint()
+    operation TestShors33() : Unit {
+        Message("Attempting to Factor 33!");
+        // Test that 33 = 11x3 using 6 qubits by computing (5^x mod 21)
+        let nQubits = 6; // 33 < 2^6 = 64
+        let baseInt = 5;  // should be chosen randomly, but to save cpu time....
+        let (factor1, factor2) = ShorsFactoringAlgorithm(33, nQubits, baseInt);
+        Message($"Factors are: {factor1} and {factor2}");
+    }
 }
