@@ -16,7 +16,8 @@ namespace ShorsFactoringAlgorithm {
             let qIdx = n-dIdx;
             H(inQubits[qIdx]);
             for (d in 1..(qIdx)) {
-                Controlled R1Frac([inQubits[qIdx-d]], (d, 1, inQubits[qIdx]));
+                // Controlled R1Frac([inQubits[qIdx-d]], (d, 1, inQubits[qIdx]));
+                Controlled R1Frac([inQubits[qIdx-d]], (1, d, inQubits[qIdx]));
             }
         }
     }
@@ -57,6 +58,18 @@ namespace ShorsFactoringAlgorithm {
         return measInt;
     }   
 
+    function validatePeriod(period: Int, baseInt: Int, N: Int): Int {
+        mutable checkVal = 1;
+        mutable newPeriod = period;
+        while ( checkVal == 1 and ModI(newPeriod, 2) != 0 and period < N and period != 0 ) {
+            set newPeriod += period;
+            set checkVal = ExpModI(baseInt, newPeriod, N);
+            Message($"New period {newPeriod} check val is {checkVal}");
+        }
+
+        return newPeriod;
+    }
+
     operation ShorsFactoringAlgorithm(N: Int, nQubits: Int, baseInt: Int): (Int, Int) {
         // Factors N based on Shor's quantum factoring algorithm
         //  nQubits should be such that 2^nQubits approx N^2. 
@@ -70,9 +83,9 @@ namespace ShorsFactoringAlgorithm {
 
         repeat {
             Message($"Running Period Finding Attempt #{count}");
-            using (qubits = Qubit[2*nQubits]) {
+            using (qubits = Qubit[3*nQubits-1]) {
 
-                let chunks = Chunks(nQubits, qubits);
+                let chunks = Chunks(2*nQubits-1, qubits);
                 // Set the ancilla qubit to $|1> for multiplication 
                 X(chunks[1][0]);
                 let x = chunks[0];
@@ -81,17 +94,32 @@ namespace ShorsFactoringAlgorithm {
                 let y = LittleEndian(chunks[1]); 
                 Message("State is prepared!");
 
-                set measInt = measureModularFrequency(x, y,  modulus, baseInt, nQubits);
+                set measInt = measureModularFrequency(x, y,  modulus, baseInt, 2*nQubits-1);
                 Message($"Measured Frequency: |{measInt}>");
 
                 ApplyToEach(Reset, qubits);  // Uncompute
             }
 
-            set (period, j) = estimatePeriodWithContinuedFrac(measInt, nQubits, N);
-            Message($"Period Measured to be: {period}, index: {j}");
+            set (period, j) = estimatePeriodWithContinuedFrac(measInt, 2*nQubits-1, N);
+            Message($"Initial Period Measured to be: {period}, index: {j}");
 
             // check that period is not odd, 0 and that modular exp is consistent
-            let checkVal = ExpModI(baseInt, period, N);
+            mutable checkVal = ExpModI(baseInt, period, N);
+
+            // We can try to increase the period until we exceed the number we are trying to factor. 
+            // e.g. it is possible we selected the 
+            // repeat {
+            //     set period += period;
+            //     set j += j;
+            //     set checkVal = ExpModI(baseInt, period, N);
+            //     Message("HELLLOOOO");
+            // } until ((checkVal == 1 and ModI(period, 2) == 0) or period > N or period == 0 );
+
+            // set period = validatePeriod(period, baseInt, N);
+            // set checkVal = ExpModI(baseInt, period, N);
+
+            // Message($"Updated Period Measured to be: {period}, index: {j}");
+
             set foundPeriod = (
                 ModI(period, 2) == 0 and
                 period != 0 and 
@@ -213,7 +241,7 @@ namespace ShorsFactoringAlgorithm {
         } until ( delta < stopThresh);
 
         if ( delta != 0.0 ) {
-            set contFracRep += [DividedByI(denom, num)];
+            // set contFracRep += [DividedByI(denom, num)];
             set (j, period) = continuedFracAsRatio(contFracRep);
         }
 
@@ -230,25 +258,30 @@ namespace ShorsFactoringAlgorithm {
     // @EntryPoint()
     operation TestQFT() : Unit {
         
-        let n = 3;
+        let n = 4;
         using (qubits = Qubit[n]) {
 
             H(qubits[1]);
 
             Message("Pre-QFT State: ");
             DumpMachine();
-            QFT(qubits, n);
+            QFT(qubits, n);           
+
+            // mutable qBE = BigEndian(qubits);
+            // let qLE = BigEndianAsLittleEndian(qBE);
+            SwapReverseRegister(qubits);
+
             Message("Post-QFT State: ");
             DumpMachine();
 
-            mutable qBE = BigEndian(qubits);
-            let qLE = BigEndianAsLittleEndian(qBE);
-
             ApplyToEach(Reset, qubits);
+        }
 
+        using (qubits = Qubit[n]) {
             H(qubits[1]);
         
-            Message("Pre-QFT State: ");
+            let qLE = LittleEndian(qubits);
+            Message("Pre-QFTLE State: ");
             DumpMachine();
             QFTLE(qLE);
             Message("Post-QFTLE State: ");          
@@ -341,7 +374,7 @@ namespace ShorsFactoringAlgorithm {
     // @EntryPoint()
     operation TestShors15() : Unit {
         // Test that 15 = 3x5 using 6 qubits by computing (7^x mod 15)
-        let nQubits = 6;
+        let nQubits = 4;
         let baseInt = 7;
         let (factor1, factor2) = ShorsFactoringAlgorithm(15, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
@@ -351,8 +384,8 @@ namespace ShorsFactoringAlgorithm {
     operation TestShors21() : Unit {
         Message("Attempting to Factor 21!");
         // Test that 21 = 7x3 using 7 qubits by computing (5^x mod 21)
-        let nQubits = 8;  // Using less qubits than suggested, more likely to retry, but faster attemps
-        let baseInt = 5;
+        let nQubits = 5;  // Using less qubits than suggested, more likely to retry, but faster attemps
+        let baseInt = 13;
         let (factor1, factor2) = ShorsFactoringAlgorithm(21, nQubits, baseInt);
         Message($"Factors are: {factor1} and {factor2}");
     }
