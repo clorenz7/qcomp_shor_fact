@@ -59,4 +59,26 @@ Computing GCD(15, 50)
 Factors are: 3 and 5
 ```
 
-Factoring 21 (WARNING - Takes Awhile!): 
+Factoring 21:
+```
+Attempting to Factor 21!
+Running Period Finding Attempt #1
+State is prepared!
+Finished ModExp of bitOffset 0
+Finished ModExp of bitOffset 1
+Finished ModExp of bitOffset 2
+Finished ModExp of bitOffset 3
+Finished ModExp of bitOffset 4
+Finished ModExp of bitOffset 5
+Finished ModExp of bitOffset 6
+Finished ModExp of bitOffset 7
+Finished ModExp of bitOffset 8
+Modular Exponentiation Complete!
+QFT Complete!
+Measured Frequency: |256>
+Continued Frac is: [2]
+Initial Period Measured to be: 2, index: 1
+Computing GCD(21, 12)
+Computing GCD(21, 14)
+Factors are: 3 and 7
+``` 
