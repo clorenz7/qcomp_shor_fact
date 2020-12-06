@@ -16,7 +16,6 @@ namespace ShorsFactoringAlgorithm {
             let qIdx = n-dIdx;
             H(inQubits[qIdx]);
             for (d in 1..(qIdx)) {
-                // Controlled R1Frac([inQubits[qIdx-d]], (d, 1, inQubits[qIdx]));
                 Controlled R1Frac([inQubits[qIdx-d]], (1, d, inQubits[qIdx]));
             }
         }
@@ -211,23 +210,14 @@ namespace ShorsFactoringAlgorithm {
 
             if (denom == 0) {  // perfect representation
                 set delta = 0.0;
-                // set contFracRep += [denom];
-                // set (j, period) = continuedFracAsRatio(contFracRep);
             } else {
                 // See how far the current floating point fraction is from the actual
                 set delta = AbsD(IntAsDouble(j)/IntAsDouble(period) - actual );
-                // Message($"Checking if {j}/{period} is close enough to {actual}");
             }
 
         } until ( delta < stopThresh);
 
-        if ( delta != 0.0 ) {
-            // set contFracRep += [DividedByI(denom, num)];
-            set (j, period) = continuedFracAsRatio(contFracRep);
-        }
-
         Message($"Continued Frac is: {contFracRep}");
-        // Message($"frac is {num}/{denom}");
 
         return (period, j);
     }
@@ -352,7 +342,7 @@ namespace ShorsFactoringAlgorithm {
         Message($"GCD is:{val}");
     }
 
-    // @EntryPoint()
+    @EntryPoint()
     operation TestShors15() : Unit {
         // Test that 15 = 3x5 using 6 qubits by computing (7^x mod 15)
         let nQubits = 4; // 15 < 2^4
@@ -381,7 +371,7 @@ namespace ShorsFactoringAlgorithm {
         Message($"Factors are: {factor1} and {factor2}");
     }
 
-    @EntryPoint()
+    // @EntryPoint()
     operation TestShors35() : Unit {
         Message("Attempting to Factor 35!");
         // Test that 35 = 7x5 using 6 qubits by computing (5^x mod 21)
